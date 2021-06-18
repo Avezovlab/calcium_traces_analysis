@@ -8,8 +8,8 @@ Created on Wed Feb 10 18:02:46 2021
 Plot individual traces contained in a given folder.
 """
 
-from os.path import join, isfile
-from os import listdir
+from os.path import join, isfile, isdir
+from os import listdir, makedirs
 import pickle
 
 from numpy import array, mean, max, std, histogram, correlate, argmax, arange, sqrt, cumsum
@@ -26,8 +26,11 @@ from math import isnan
 plt.ioff()
 
 
-base_dir = "xxx"
-out_dir = "xxx"
+base_dir = "/mnt/data2/calcium_incucyte/Cas9_NMDA/traces"
+out_dir = "/tmp/a"
+
+if not isdir(out_dir):
+    makedirs(out_dir)
 
 DT = 0.33
 pxsize = 0.2646 #mm
