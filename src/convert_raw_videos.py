@@ -21,8 +21,8 @@ import os
 from os import path
 
 
-in_dir = "/media/pierre/pierreDisk/MA12_Cold shock 3_10.10.20/videos"
-out_dir = "/mnt/data2/incucyte_calcium_cold_shock/MA12(18.9.20)_Cold shock3_12.10.20/data/videos"
+in_dir = "/media/pierre/pierreDisk/vd_cyrcadyan"
+out_dir = "/mnt/nmve/vd_cyrcadyan"
 
 force = False
 

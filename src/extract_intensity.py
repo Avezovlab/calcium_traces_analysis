@@ -24,8 +24,8 @@ from os.path import join, isfile
 from os import listdir
 
 
-base_dir = "/mnt/data2/incucyte_calcium_cold_shock/MA12(18.9.20)_Cold shock3_12.10.20/data"
-out_dir = "/mnt/data2/incucyte_calcium_cold_shock/MA12(18.9.20)_Cold shock3_12.10.20/processed"
+base_dir = "/mnt/nmve/vd_cyrcadyan/"
+out_dir = "/mnt/nmve/vd_cyrcadyan/"
 
 
 files = listdir(join(base_dir, "videos"))

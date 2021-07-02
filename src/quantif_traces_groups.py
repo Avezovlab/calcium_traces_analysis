@@ -84,6 +84,7 @@ def pool_data(d, timestamps, groups, pool_time, fill_missing):
 
 #plt.ioff()
 
+pk_smooth_factor = 1.3
 
 #base_dir = "/mnt/data2/calcium_incucyte/201228_Tasuku_MA24_16h cold shock/processed"
 #out_dir = "/tmp/a/201228_Tasuku_MA24_16h cold shock"
@@ -91,26 +92,30 @@ def pool_data(d, timestamps, groups, pool_time, fill_missing):
 #groups = {"WT": ["B2", "B3", "C2", "C3", "D2", "D3"],
 #          "RTN3OE": ["B4", "C4", "D4"]}
 #groups_col = {"WT": 'k', "RTN3OE": 'r'}
+# time_groups = []
+# time_groups_names = {}
 
 
-base_dir = "/mnt/data2/incucyte_calcium_cold_shock/MA9(24.8)_cold_shock2_19.9.20/processed"
-out_dir = "/tmp/a/MA9(24.8)_cold_shock2_19.9.20"
-excluded_ts = ["02d05h15m", "02d09h15m", "02d13h15m", "02d17h15m"]
-groups = {"": ["B2", "B3", "B4", "C2", "C3", "C4"]}
-time_groups = [1, 1, 1, 2, 2, 2, 2, 3, 3, 3]
-groups_col = {"": 'k'}
-fill_missing = False
-plot_indiv_traces = False
+# base_dir = "/mnt/data2/incucyte_calcium_cold_shock/MA9(24.8)_cold_shock2_19.9.20/processed"
+# out_dir = "/tmp/a/MA9(24.8)_cold_shock2_19.9.20"
+# excluded_ts = ["02d05h15m", "02d09h15m", "02d13h15m", "02d17h15m"]
+# groups = {"": ["B2", "B3", "B4", "C2", "C3", "C4"]}
+# time_groups = [1, 1, 1, 2, 2, 2, 2, 3, 3, 3]
+# time_groups_names = {1:"before", 2:"schock", 3:"after"}
+# groups_col = {"": 'k'}
+# fill_missing = False
+# plot_indiv_traces = False
 
 
 # base_dir = "/mnt/data2/incucyte_calcium_cold_shock/MA12(18.9.20)_Cold shock3_12.10.20/processed"
 # out_dir = "/tmp/a/MA12(18.9.20)_Cold shock3_12.10.20"
-# excluded_ts = ["00d16h00m", "01d00h00m", "02d23h21m", "03d02h21m"]
-# groups = {"": ["B2", "B3", "B4", "C2", "C3", "C4"]}
+# excluded_ts = ["00d16h00m", "01d00h00m", "02d14h21m", "02d20h21m"]
+# groups = {"": ["B3", "B4", "C2", "C3", "C4"]}
 # groups_col = {"": 'k'}
 # time_groups = [1, 1, 1, 2, 2 ,2, 2, 2, 3, 3, 3]
+# time_groups_names = {1:"before", 2:"schock", 3:"after"}
 # fill_missing = False
-# plot_indiv_traces = False
+# plot_indiv_traces = True
 
 
 # base_dir = "/mnt/data2/calcium_incucyte/MA11(31.8.20)_CPA_TG_WT _25.9.20/processed"
@@ -123,6 +128,7 @@ plot_indiv_traces = False
 # # out_dir = "/tmp/a/MA11(31.8.20)_CPA_TG_WT_25.9.20/TG0p5"
 # groups_col = {"CPA": 'k', "TG5µM": 'r', "TG0.5µM": "m"}
 # time_groups = []
+# time_groups_names = {}
 # fill_missing = True
 # plot_indiv_traces = True
 
@@ -132,6 +138,7 @@ plot_indiv_traces = False
 # excluded_ts = []
 # groups = {"NMDA": ["B3"]}
 # time_groups = []
+# time_groups_names = {}
 # fill_missing = True
 # plot_indiv_traces = True
 
@@ -141,8 +148,20 @@ plot_indiv_traces = False
 # excluded_ts = []
 # groups = {"AMPA": ["C3"]}
 # time_groups = []
+# time_groups_names = {}
 # fill_missing = True
 # plot_indiv_traces = True
+
+base_dir = "/mnt/nmve/vd_cyrcadyan/traces"
+out_dir = "/tmp/a/vd_cyrcadyan"
+excluded_ts = []
+groups = {"": ["C3", "C4", "C5"]}
+groups_col = {"": 'k'}
+time_groups = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+time_groups_names = {1: "aa"}
+fill_missing = False
+plot_indiv_traces = False
+pk_smooth_factor=1.1
 
 if not isdir(out_dir):
     makedirs(out_dir)
@@ -216,7 +235,7 @@ for cpt,fname in enumerate(all_files):
     Mtr = mean(avg_trace)
     SDtr = std(avg_trace)
 
-    cur_pks = [pk for pk in cur_pks if ((smoothed_trace[pk] > 2 and avg_trace[pk] > 1.3*smoothed_trace[pk]) or (smoothed_trace[pk] < 2 and avg_trace[pk] > 3*smoothed_trace[pk]))]
+    cur_pks = [pk for pk in cur_pks if ((smoothed_trace[pk] > 2 and avg_trace[pk] > pk_smooth_factor*smoothed_trace[pk]) or (smoothed_trace[pk] < 2 and avg_trace[pk] > 3*smoothed_trace[pk]))]
     all_avg_pks_cnt[cat][well][ts] = [len(cur_pks)]
     all_avg_pks_freqs[cat][well][ts] = [1 / ((cur_pks[i+1] - cur_pks[i]) * DT) for i in range(0, len(cur_pks) - 1) if (cur_pks[i+1] - cur_pks[i]) * DT < 50]
     all_avg_pks_amps[cat][well][ts] = [avg_trace[cur_pks[i]] for i in range(0, len(cur_pks))]
@@ -344,7 +363,7 @@ with open(join(out_dir, "peaks_count_wells.txt"), 'w') as f:
 if time_groups:
     dats_t = pool_data_timecat(all_avg_pks_cnt, timestamps, list(groups.keys())[0], time_groups, fill_missing)
     plt.figure(figsize=(7,7))
-    plt.bar(["before", "cur", "after"], [mean(dats_t[k]) for k in set(time_groups)])
+    plt.bar([time_groups_names[k] for k in set(time_groups)], [mean(dats_t[k]) for k in set(time_groups)])
     plt.ylabel('Number of peaks')
     plt.savefig(join(out_dir, "peaks_count_bar.png"), dpi=300, bbox_inches='tight',pad_inches=0)
 
@@ -354,12 +373,13 @@ if time_groups:
             f.write(", ".join(["{:.3f}".format(dats_t[k][i]) for k in dats_t.keys()]) + "\n")
 
     print("Peak count:")
-    print("before AVG ± SD = {:.2f} ± {:.2f}".format(mean(dats_t[1]), std(dats_t[1])))
-    print("shock AVG ± SD = {:.2f} ± {:.2f}".format(mean(dats_t[2]), std(dats_t[2])))
-    print("after AVG ± SD = {:.2f} ± {:.2f}".format(mean(dats_t[3]), std(dats_t[3])))
-    print("ANOVA before vs shock: p = {:.6f}".format(f_oneway(dats_t[1], dats_t[2]).pvalue))
-    print("ANOVA before vs after: p = {:.6f}".format(f_oneway(dats_t[1], dats_t[3]).pvalue))
-    print("ANOVA shock vs after: p = {:.6f}".format(f_oneway(dats_t[2], dats_t[3]).pvalue))
+    for i in set(time_groups):
+        print("{}: AVG ± SD = {:.2f} ± {:.2f}".format(time_groups_names[i], mean(dats_t[i]), std(dats_t[i])))
+    for i in set(time_groups):
+        for j in set(time_groups):
+            if j > i:
+                print("ANOVA {} vs {}: p = {:.6f}"
+                      .format(time_groups_names[i], time_groups_names[j], f_oneway(dats_t[i], dats_t[j]).pvalue))
 
 
 xs, dat = pool_data(all_traces_cnt, timestamps, groups, pool_times, fill_missing)
@@ -399,7 +419,7 @@ with open(join(out_dir, "traces_count_wells.txt"), 'w') as f:
 if time_groups:
     dats_t = pool_data_timecat(all_traces_cnt, timestamps, list(groups.keys())[0], time_groups, fill_missing)
     plt.figure(figsize=(7,7))
-    plt.bar(["before", "cur", "after"], [mean(dats_t[k]) for k in set(time_groups)])
+    plt.bar([time_groups_names[k] for k in set(time_groups)], [mean(dats_t[k]) for k in set(time_groups)])
     plt.ylabel('Number of traces')
     plt.savefig(join(out_dir, "traces_count_bar.png"), dpi=300, bbox_inches='tight',pad_inches=0)
 
@@ -409,12 +429,14 @@ if time_groups:
             f.write(", ".join(["{:.3f}".format(dats_t[k][i]) for k in dats_t.keys()]) + "\n")
 
     print("traces count:")
-    print("before AVG ± SD = {:.2f} ± {:.2f}".format(mean(dats_t[1]), std(dats_t[1])))
-    print("shock AVG ± SD = {:.2f} ± {:.2f}".format(mean(dats_t[2]), std(dats_t[2])))
-    print("after AVG ± SD = {:.2f} ± {:.2f}".format(mean(dats_t[3]), std(dats_t[3])))
-    print("ANOVA before vs shock: p = {:.6f}".format(f_oneway(dats_t[1], dats_t[2]).pvalue))
-    print("ANOVA before vs after: p = {:.6f}".format(f_oneway(dats_t[1], dats_t[3]).pvalue))
-    print("ANOVA shock vs after: p = {:.6f}".format(f_oneway(dats_t[2], dats_t[3]).pvalue))
+    for i in set(time_groups):
+        print("{}: AVG ± SD = {:.2f} ± {:.2f}".format(time_groups_names[i], mean(dats_t[i]), std(dats_t[i])))
+    for i in set(time_groups):
+        for j in set(time_groups):
+            if j > i:
+                print("ANOVA {} vs {}: p = {:.6f}"
+                      .format(time_groups_names[i], time_groups_names[j], f_oneway(dats_t[i], dats_t[j]).pvalue))
+
 
 
 # xs, dat = pool_data(all_avg_pks_freqs, timestamps, groups, pool_times)
@@ -470,7 +492,7 @@ with open(join(out_dir, "peaks_freq_wells.txt"), 'w') as f:
 if time_groups:
     dats_t = pool_data_timecat(all_avg_pks_freqs, timestamps, list(groups.keys())[0], time_groups, fill_missing)
     plt.figure(figsize=(7,7))
-    plt.bar(["before", "cur", "after"], [mean(dats_t[k]) for k in set(time_groups)])
+    plt.bar([time_groups_names[k] for k in set(time_groups)], [mean(dats_t[k]) for k in set(time_groups)])
     plt.ylabel('Peak Frequency (Hz)')
     plt.savefig(join(out_dir, "peaks_freq_bar.png"), dpi=300, bbox_inches='tight',pad_inches=0)
 
@@ -480,12 +502,13 @@ if time_groups:
             f.write(", ".join(["{:.3f}".format(dats_t[k][i]) for k in dats_t.keys()]) + "\n")
 
     print("Peak frequency:")
-    print("before AVG ± SD = {:.2f} ± {:.2f}".format(mean(dats_t[1]), std(dats_t[1])))
-    print("shock AVG ± SD = {:.2f} ± {:.2f}".format(mean(dats_t[2]), std(dats_t[2])))
-    print("after AVG ± SD = {:.2f} ± {:.2f}".format(mean(dats_t[3]), std(dats_t[3])))
-    print("ANOVA before vs shock: p = {:.6f}".format(f_oneway(dats_t[1], dats_t[2]).pvalue))
-    print("ANOVA before vs after: p = {:.6f}".format(f_oneway(dats_t[1], dats_t[3]).pvalue))
-    print("ANOVA shock vs after: p = {:.6f}".format(f_oneway(dats_t[2], dats_t[3]).pvalue))
+    for i in set(time_groups):
+        print("{}: AVG ± SD = {:.2f} ± {:.2f}".format(time_groups_names[i], mean(dats_t[i]), std(dats_t[i])))
+    for i in set(time_groups):
+        for j in set(time_groups):
+            if j > i:
+                print("ANOVA {} vs {}: p = {:.6f}"
+                      .format(time_groups_names[i], time_groups_names[j], f_oneway(dats_t[i], dats_t[j]).pvalue))
 
 #plt.figure(figsize=(7,7))
 #p = plt.boxplot(dat)
@@ -555,7 +578,7 @@ with open(join(out_dir, "peaks_amplitude_wells.txt"), 'w') as f:
 if time_groups:
     dats_t = pool_data_timecat(all_avg_pks_amps, timestamps, list(groups.keys())[0], time_groups, fill_missing)
     plt.figure(figsize=(7,7))
-    plt.bar(["before", "cur", "after"], [mean(dats_t[k]) for k in set(time_groups)])
+    plt.bar([time_groups_names[k] for k in set(time_groups)], [mean(dats_t[k]) for k in set(time_groups)])
     plt.ylabel('Peak amplitude (AU)')
     plt.savefig(join(out_dir, "peaks_amplitude_bar.png"), dpi=300, bbox_inches='tight',pad_inches=0)
 
@@ -565,12 +588,13 @@ if time_groups:
             f.write(", ".join(["{:.3f}".format(dats_t[k][i]) for k in dats_t.keys()]) + "\n")
 
     print("Peak amplitude:")
-    print("before AVG ± SD = {:.2f} ± {:.2f}".format(mean(dats_t[1]), std(dats_t[1])))
-    print("shock AVG ± SD = {:.2f} ± {:.2f}".format(mean(dats_t[2]), std(dats_t[2])))
-    print("after AVG ± SD = {:.2f} ± {:.2f}".format(mean(dats_t[3]), std(dats_t[3])))
-    print("ANOVA before vs shock: p = {:.6f}".format(f_oneway(dats_t[1], dats_t[2]).pvalue))
-    print("ANOVA before vs after: p = {:.6f}".format(f_oneway(dats_t[1], dats_t[3]).pvalue))
-    print("ANOVA shock vs after: p = {:.6f}".format(f_oneway(dats_t[2], dats_t[3]).pvalue))
+    for i in set(time_groups):
+        print("{}: AVG ± SD = {:.2f} ± {:.2f}".format(time_groups_names[i], mean(dats_t[i]), std(dats_t[i])))
+    for i in set(time_groups):
+        for j in set(time_groups):
+            if j > i:
+                print("ANOVA {} vs {}: p = {:.6f}"
+                      .format(time_groups_names[i], time_groups_names[j], f_oneway(dats_t[i], dats_t[j]).pvalue))
 
 #plt.figure(figsize=(7,7))
 #p = plt.boxplot(dat)
@@ -631,7 +655,7 @@ with open(join(out_dir, "peaks_width_wells.txt"), 'w') as f:
 if time_groups:
     dats_t = pool_data_timecat(all_avg_pks_fwhm, timestamps, list(groups.keys())[0], time_groups, fill_missing)
     plt.figure(figsize=(7,7))
-    plt.bar(["before", "cold shock", "after"], [mean(dats_t[k]) for k in set(time_groups)])
+    plt.bar([time_groups_names[k] for k in set(time_groups)], [mean(dats_t[k]) for k in set(time_groups)])
     plt.ylabel('AVG Peak width (s)')
     plt.savefig(join(out_dir, "peaks_width_bar.png"), dpi=300, bbox_inches='tight',pad_inches=0)
 
@@ -641,13 +665,13 @@ if time_groups:
             f.write(", ".join(["{:.3f}".format(dats_t[k][i]) for k in dats_t.keys()]) + "\n")
 
     print("Peak width:")
-    print("before AVG ± SD = {:.2f} ± {:.2f}".format(mean(dats_t[1]), std(dats_t[1])))
-    print("shock AVG ± SD = {:.2f} ± {:.2f}".format(mean(dats_t[2]), std(dats_t[2])))
-    print("after AVG ± SD = {:.2f} ± {:.2f}".format(mean(dats_t[3]), std(dats_t[3])))
-    print("ANOVA before vs shock: p = {:.6f}".format(f_oneway(dats_t[1], dats_t[2]).pvalue))
-    print("ANOVA before vs after: p = {:.6f}".format(f_oneway(dats_t[1], dats_t[3]).pvalue))
-    print("ANOVA shock vs after: p = {:.6f}".format(f_oneway(dats_t[2], dats_t[3]).pvalue))
-
+    for i in set(time_groups):
+        print("{}: AVG ± SD = {:.2f} ± {:.2f}".format(time_groups_names[i], mean(dats_t[i]), std(dats_t[i])))
+    for i in set(time_groups):
+        for j in set(time_groups):
+            if j > i:
+                print("ANOVA {} vs {}: p = {:.6f}"
+                      .format(time_groups_names[i], time_groups_names[j], f_oneway(dats_t[i], dats_t[j]).pvalue))
 
 
 xs, dat = pool_data(all_max_ccor, timestamps, groups, pool_times, fill_missing)
@@ -688,7 +712,7 @@ with open(join(out_dir, "corr_wells.txt"), 'w') as f:
 if time_groups:
     dats_t = pool_data_timecat(all_max_ccor, timestamps, list(groups.keys())[0], time_groups, fill_missing)
     plt.figure(figsize=(7,7))
-    plt.bar(["before", "cold shock", "after"], [mean(dats_t[k]) for k in set(time_groups)])
+    plt.bar([time_groups_names[k] for k in set(time_groups)], [mean(dats_t[k]) for k in set(time_groups)])
     plt.ylabel('AVG max correlation')
     plt.savefig(join(out_dir, "corr_bar.png"), dpi=300, bbox_inches='tight',pad_inches=0)
 
@@ -698,9 +722,10 @@ if time_groups:
             f.write(", ".join(["{:.3f}".format(dats_t[k][i]) for k in dats_t.keys()]) + "\n")
 
     print("Peak correlation:")
-    print("before AVG ± SD = {:.2f} ± {:.2f}".format(mean(dats_t[1]), std(dats_t[1])))
-    print("shock AVG ± SD = {:.2f} ± {:.2f}".format(mean(dats_t[2]), std(dats_t[2])))
-    print("after AVG ± SD = {:.2f} ± {:.2f}".format(mean(dats_t[3]), std(dats_t[3])))
-    print("ANOVA before vs shock: p = {:.6f}".format(f_oneway(dats_t[1], dats_t[2]).pvalue))
-    print("ANOVA before vs after: p = {:.6f}".format(f_oneway(dats_t[1], dats_t[3]).pvalue))
-    print("ANOVA shock vs after: p = {:.6f}".format(f_oneway(dats_t[2], dats_t[3]).pvalue))
+    for i in set(time_groups):
+        print("{}: AVG ± SD = {:.2f} ± {:.2f}".format(time_groups_names[i], mean(dats_t[i]), std(dats_t[i])))
+    for i in set(time_groups):
+        for j in set(time_groups):
+            if j > i:
+                print("ANOVA {} vs {}: p = {:.6f}"
+                      .format(time_groups_names[i], time_groups_names[j], f_oneway(dats_t[i], dats_t[j]).pvalue))
