@@ -1,28 +1,13 @@
-from fiji.plugin.trackmate import Model
-from fiji.plugin.trackmate import Settings
-from fiji.plugin.trackmate import TrackMate
-from fiji.plugin.trackmate import SelectionModel
-from fiji.plugin.trackmate import Logger
-from fiji.plugin.trackmate.features.spot import SpotContrastAndSNRAnalyzerFactory, SpotIntensityAnalyzerFactory
-from fiji.plugin.trackmate.detection import LogDetectorFactory
-from fiji.plugin.trackmate.tracking.sparselap import SimpleSparseLAPTrackerFactory
-from fiji.plugin.trackmate.tracking import LAPUtils
-from ij import IJ, WindowManager
-from fiji.plugin.trackmate import Spot
-import fiji.plugin.trackmate.visualization.hyperstack.HyperStackDisplayer as HyperStackDisplayer
-import fiji.plugin.trackmate.features.FeatureFilter as FeatureFilter
-import sys
-import fiji.plugin.trackmate.features.track.TrackDurationAnalyzer as TrackDurationAnalyzer
-from ij.plugin import Commands
-from ij.measure import Calibration
-from ij.gui import Roi
-
 import os
 from os import path
 
 
 in_dir = "E:/vd_cyrcadyan"
 out_dir = "E:/out/videos"
+
+if not path.isdir(out_dir):
+        os.makedirs(out_dir)
+
 
 Nsplit = 2
 
@@ -34,8 +19,8 @@ for i, fname in enumerate(filenames):
 	out_fname = fname.split("_")
 	if out_fname[0] != "VID":
 		out_fname[0] = "VID"
-	out_fname = ("_".join(out_fname))[:-len(".avi")]
-	
+	out_fname = ("_".join(out_fname))[:-len(".avi")]
+
 	IJ.open(path.join(root, fname))
 	imp = IJ.getImage()
 
@@ -60,6 +45,6 @@ for i, fname in enumerate(filenames):
 				print("Skipped[{}/{}:{}]: {}".format(i+1, len(filenames), n, fname))
 			imp = IJ.getImage()
 			imp.close()
-	imp = IJ.getImage()
+	imp = IJ.getImage()
 	imp.close()
 print("done")
