@@ -23,6 +23,8 @@ sys.path.append("E:/cyrcadian_c5")
 from analysis_config import *
 
 
+if not path.isdir(out_dir):
+    os.makedirs(out_dir)
 
 filenames = []
 for root, dirs, files, in os.walk(in_dir):
@@ -32,8 +34,8 @@ for i, fname in enumerate(filenames):
 	out_fname = fname.split("_")
 	if out_fname[0] != "VID":
 		out_fname[0] = "VID"
-	out_fname = ("_".join(out_fname))[:-len(".avi")]
-	
+	out_fname = ("_".join(out_fname))[:-len(".avi")]
+
 	IJ.open(path.join(root, fname))
 	imp = IJ.getImage()
 
@@ -58,6 +60,6 @@ for i, fname in enumerate(filenames):
 				print("Skipped[{}/{}:{}]: {}".format(i+1, len(filenames), n, fname))
 			imp = IJ.getImage()
 			imp.close()
-	imp = IJ.getImage()
+	imp = IJ.getImage()
 	imp.close()
 print("done")
