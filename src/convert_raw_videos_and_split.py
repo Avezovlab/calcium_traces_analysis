@@ -19,12 +19,10 @@ from ij.gui import Roi
 
 import os
 from os import path
+sys.path.append("E:/cyrcadian_c5")
+from analysis_config import *
 
 
-in_dir = "E:/vd_cyrcadyan"
-out_dir = "E:/out/videos"
-
-Nsplit = 2
 
 filenames = []
 for root, dirs, files, in os.walk(in_dir):

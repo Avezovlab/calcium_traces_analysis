@@ -33,8 +33,8 @@ plt.ioff()
 #base_dir = "/mnt/data2/incucyte_calcium_cold_shock/MA9(24.8)_cold_shock2_19.9.20/processed"
 #out_dir = "/tmp/a/MA9(24.8)_cold_shock2_19.9.20"
 
-base_dir = "/mnt/data2/calcium_incucyte/MA11(31.8.20)_CPA_TG_WT _25.9.20/processed"
-out_dir = "/tmp/a/MA11(31.8.20)_CPA_TG_WT _25.9.20"
+base_dir = "E:/cyrcadian_example/out"
+out_dir = "E:/cyrcadian_example/plots"
 
 if not isdir(out_dir):
     makedirs(out_dir)
@@ -50,17 +50,17 @@ all_avg_pks_amps = {}
 all_avg_pks_fwhm = {}
 for cpt,fname in enumerate(all_files):
     print("Processing[{}/{}]: {}".format(cpt + 1, len(all_files), fname))
-    ts = fname[:-len(".csv")].split("_")[-1]
+    ts = fname[:-len(".csv")].split("_")[3]
     timestamps.append(ts)
 
     traces = []
     with open(join(base_dir, fname), 'r') as f:
         for line in f:
-            line = line.rstrip("\n").split(" ")
+            line = line.rstrip("\n").split(" ")#?
             traces.append([float(e) for e in line[1].split(",")])
-
     avg_trace = [mean([e[i] for e in traces]) for i in range(len(traces[0]))]
-    smoothed_trace = savgol_filter(avg_trace, 501, 3)
+    print(len(avg_trace))
+    smoothed_trace = savgol_filter(avg_trace, 179, 3)
 
     cur_pks = find_peaks(avg_trace)[0]
     Mtr = mean(avg_trace)
