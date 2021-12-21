@@ -8,7 +8,6 @@ Created on Sat Oct 31 01:27:10 2020
 Excract individual cell's calcium traces from videos.
 
 Inputs:
-  base dir must conain two sub-direcies: videos and masks
   video files must be tif and start with "VID_"
   mask files must be black and white tif images with names starting with "MASK_"
 
@@ -23,24 +22,26 @@ from numpy import mean
 from os.path import join, isfile
 from os import listdir
 
+import sys
+sys.path.append("/mnt/data2/calcium_incucyte/PP_VD_Prop_191021/data")
+from analysis_config import *
 
-base_dir = "E:/cyrcadian_c5"
-out_dir = "E:/cyrcadian_c5/traces_objects"
+
 
 vid_fmt = "VID_{}_{}_{}.tif"
 mask_fmt = "MASK_{}_{}.tif"
 out_obj_fmt = "objects_{}_{}.csv"
 out_fmt = "{}_{}_{}_{}.csv"
 
-files = listdir(join(base_dir, "videos"))
+files = listdir(join(in_dir, "tiffs"))
 for cpt,fname in enumerate(files):
     timestamp = fname.split("_")[3]
     well_id = "_".join(fname.split("_")[1:3])
     substack="_".join(fname.split("_")[4:])[:-len(".tif")]
 
-    vid_fname = join(base_dir, "videos", vid_fmt.format(well_id, timestamp, substack))
-    mask_fname = join(base_dir, "masks", mask_fmt.format(well_id, timestamp))
-    fr_mask_fname = join(base_dir, "fr_masks", mask_fmt.format(well_id, timestamp))
+    vid_fname = join(in_dir, "tiffs", vid_fmt.format(well_id, timestamp, substack))
+    mask_fname = join(in_dir, "masks", mask_fmt.format(well_id, timestamp))
+    fr_mask_fname = join(in_dir, "fr_masks", mask_fmt.format(well_id, timestamp))
 
 
     if not isfile(vid_fname) or not isfile(mask_fname):
@@ -48,8 +49,8 @@ for cpt,fname in enumerate(files):
         continue
 
 
-    out_obj_fname = join(out_dir,out_obj_fmt.format(well_id, timestamp))
-    out_trace_fname = join(out_dir, out_fmt.format("traces", well_id, timestamp, substack))
+    out_obj_fname = join(in_dir, "traces", out_obj_fmt.format(well_id, timestamp))
+    out_trace_fname = join(in_dir, "traces", out_fmt.format("traces", well_id, timestamp, substack))
 
     if isfile(out_trace_fname):
         print("Skipped[{}/{}]: {}".format(cpt+1, len(files), fname))
@@ -81,8 +82,8 @@ for cpt,fname in enumerate(files):
 
     if isfile(fr_mask_fname):
         print("Processing FR mask [{}/{}]: {}".format(cpt+1, len(files), fname))
-        out_fr_obj_fname = join(out_dir, out_fmt.format("fr_objects", well_id, timestamp, substack))
-        out_fr_trace_fname = join(out_dir, out_fmt.format("fr_traces", well_id, timestamp, substack))
+        out_fr_obj_fname = join(in_dir, "traces", out_fmt.format("fr_objects", well_id, timestamp, substack))
+        out_fr_trace_fname = join(in_dir, "traces", out_fmt.format("fr_traces", well_id, timestamp, substack))
 
         fr_mask = imread(mask_fname)
         if fr_mask.ndim == 3:

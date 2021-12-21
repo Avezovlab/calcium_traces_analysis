@@ -6,7 +6,7 @@ Created on Sun Mar  7 19:49:09 2021
 @author: pierre
 """
 
-
+import sys
 from os.path import join, isdir
 from os import listdir, makedirs
 
@@ -152,12 +152,25 @@ pk_smooth_factor = 1.3
 # fill_missing = True
 # plot_indiv_traces = True
 
-base_dir = "/mnt/nmve/vd_cyrcadyan/traces"
-out_dir = "/tmp/a/vd_cyrcadyan"
+# base_dir = "/mnt/nmve/vd_cyrcadyan/traces"
+# out_dir = "/tmp/a/vd_cyrcadyan"
+# excluded_ts = []
+# groups = {"": ["C3", "C4", "C5"]}
+# groups_col = {"": 'k'}
+# time_groups = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+# time_groups_names = {1: "aa"}
+# fill_missing = False
+# plot_indiv_traces = False
+# pk_smooth_factor=1.1
+
+
+sys.path.append("/mnt/data2/calcium_incucyte/PP_VD_Prop_191021/data")
+from analysis_config import *
+
 excluded_ts = []
-groups = {"": ["C3", "C4", "C5"]}
+groups = {"1": ["D6"], "2": ["D7"]}#, "CTRL2": ["E6"], "0.5_1": ["D7"], "0.5_2": ["D8"], "1.5_1": ["E7"], "1.5_2": ["E8"]}
 groups_col = {"": 'k'}
-time_groups = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+time_groups = [1] * 15
 time_groups_names = {1: "aa"}
 fill_missing = False
 plot_indiv_traces = False
@@ -177,6 +190,8 @@ min_traces = 50
 
 timestamps = set()
 
+
+base_dir = join(out_dir, "traces")
 all_files =  [f for f in listdir(base_dir) if f.startswith("traces")]
 all_traces_cnt = {k:{} for k in groups.keys()}
 all_avg_pks_cnt = {k:{} for k in groups.keys()}
@@ -186,7 +201,7 @@ all_avg_pks_amps = {k:{} for k in groups.keys()}
 all_avg_pks_fwhm = {k:{} for k in groups.keys()}
 for cpt,fname in enumerate(all_files):
     print("Processing[{}/{}]: {}".format(cpt + 1, len(all_files), fname))
-    ts = fname[:-len(".csv")].split("_")[-1]
+    ts = fname[:-len(".csv")].split("_")[-3]
 
     if ts in excluded_ts:
         continue
@@ -328,7 +343,7 @@ timestamps = sorted(timestamps,
 
 xs, dat = pool_data(all_avg_pks_cnt, timestamps, groups, pool_times, fill_missing)
 plt.figure(figsize=(7,7))
-plt.fill_between(range(1, len(xs)+1), [mean(e) -std(e) for e in dat],
+plt.fill_between(range(1, len(xs)+1), [mean(e) - std(e) for e in dat],
                  [mean(e) + std(e) for e in dat], alpha=0.3)
 plt.plot(range(1, len(xs)+1), [mean(e) for e in dat])
 plt.xticks(ticks=range(1, len(dat) + 1), labels=xs, rotation=90)
