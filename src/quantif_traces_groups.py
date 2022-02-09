@@ -68,18 +68,19 @@ def pool_data(d, timestamps, groups, pool_time, fill_missing):
                     elif fill_missing:
                         dat[-1].extend([0])
     else:
-        for ts in timestamps:
+        for gk in groups.keys():
             dat.append([])
-            for gk in groups.keys():
+            for ts in timestamps:
+                dat[-1].append([])
                 if gk == "":
                     xs.append(ts)
                 else:
                     xs.append(ts + "_" + gk)
                 for vals in d[gk].values():
                     if ts in vals.keys() and len(vals[ts]) > 0:
-                        dat[-1].extend(vals[ts])
+                        dat[-1][-1].extend(vals[ts])
                     elif fill_missing:
-                        dat[-1].extend([0])
+                        dat[-1][-1].extend([0])
     return (xs, dat)
 
 #plt.ioff()
@@ -152,15 +153,26 @@ pk_smooth_factor = 1.3
 # fill_missing = True
 # plot_indiv_traces = True
 
-base_dir = "/mnt/nmve/vd_cyrcadyan/traces"
-out_dir = "/tmp/a/vd_cyrcadyan"
+base_dir = "C:/Users/39329/Desktop/ML/241121/traces_objects"
+out_dir = "C:/Users/39329/Desktop/ML/241121/res"
 excluded_ts = []
-groups = {"": ["C3", "C4", "C5"]}
-groups_col = {"": 'k'}
-time_groups = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+groups = {"chol" : ["C6", "C7", "C8"],
+          "asyn" : ["D3", "D4", "D5"], "chol + asyn" : ["D6", "D7", "D8"], 
+          "mbcd + asyn + chol" : ["E3", "E4", "E5"], "U188A + asyn + chol" : ["E6", "E7", "E8"],
+          "U188A" : ["F3", "F4", "F5"], "cntrl" : ["F6", "F7", "F8"]}
+
+#set1 matplotlib qualitative colormap
+groups_col = {'chol': [228 / 255, 26 / 255, 28 / 255],
+              'asyn': [55 / 255, 126 / 255, 184 / 255],
+              'chol + asyn': [77 / 255, 175 / 255, 74 / 255],
+              'mbcd + asyn + chol': [152 / 255, 78 / 255, 183 / 255],
+              'U188A + asyn + chol': [255 / 255, 127 / 255, 0 / 255],
+              'U188A': [166 / 255, 86 / 255, 40 / 255],
+              'cntrl': [0, 0, 0]}
+time_groups = [1, 1, 1, 1, 1, 1]
 time_groups_names = {1: "aa"}
 fill_missing = False
-plot_indiv_traces = False
+plot_indiv_traces = True
 pk_smooth_factor=1.1
 
 if not isdir(out_dir):
@@ -186,7 +198,7 @@ all_avg_pks_amps = {k:{} for k in groups.keys()}
 all_avg_pks_fwhm = {k:{} for k in groups.keys()}
 for cpt,fname in enumerate(all_files):
     print("Processing[{}/{}]: {}".format(cpt + 1, len(all_files), fname))
-    ts = fname[:-len(".csv")].split("_")[-1]
+    ts = fname[:-len(".csv")].split("_")[3]
 
     if ts in excluded_ts:
         continue
@@ -198,13 +210,14 @@ for cpt,fname in enumerate(all_files):
             cat = k
             break
     if cat is None:
+        print("No category found for {}".format(fname))
         continue
 
     if well not in all_avg_pks_cnt[cat]:
         all_traces_cnt[cat][well] = {}
         all_max_ccor[cat][well] = {}
         all_avg_pks_cnt[cat][well] = {}
-        all_avg_pks_freqs[cat][well] ={}
+        all_avg_pks_freqs[cat][well] = {}
         all_avg_pks_amps[cat][well] = {}
         all_avg_pks_fwhm[cat][well] = {}
 
@@ -295,437 +308,85 @@ for cpt,fname in enumerate(all_files):
 
 timestamps = sorted(timestamps,
                     key=lambda e: int(e.split("d")[0]) * 1440 + int(e.split("d")[1].split("h")[0]) * 60 + int(e.split("h")[1].split("m")[0]))
-
-
-# xs, dat = pool_data(all_traces_cnt, timestamps, groups, pool_times)
-# v_x = []
-# v_y = []
-# for i in range(len(dat)):
-#     v_x.extend([i] * len(dat[i]))
-#     v_y.extend(dat[i])
-# plt.figure(figsize=(7,7))
-# p = sns.violinplot(x=v_x, y=v_y, cut=0)
-# plt.ylabel('Number of traces')
-# p.set_xticklabels(timestamps, rotation=90)
-# plt.savefig(join(out_dir, "traces_count.png"), dpi=300, bbox_inches='tight',pad_inches=0)
-
-#plt.figure(figsize=(7,7))
-#p = plt.boxplot(dat)
-#for i in range(len(dat)):
-#    plt.plot(i + 1 + (rand(len(dat[i])) - 0.5) * 0.2, dat[i], 'x' + groups_col[gkeys[i % len(groups.keys())]])
-#    plt.xticks(ticks=range(1, len(dat) + 1), labels=xs, rotation=90)
-#plt.ylabel('Number of traces')
-#plt.savefig(join(out_dir, "traces_count.png"), dpi=300, bbox_inches='tight',pad_inches=0)
-
-# xs, dat = pool_data(all_avg_pks_cnt, timestamps, groups, pool_times)
-# plt.figure(figsize=(7,7))
-# p = plt.boxplot(dat)
-# for i in range(len(dat)):
-#     plt.plot(i + 1 + (rand(len(dat[i])) - 0.5) * 0.2, dat[i], 'x' + groups_col[gkeys[i % len(groups.keys())]])
-# plt.xticks(ticks=range(1, len(dat) + 1), labels=xs, rotation=90)
-# plt.ylabel('Number of peaks')
-# plt.savefig(join(out_dir, "peaks_count.png"), dpi=300, bbox_inches='tight',pad_inches=0)
+groups_keys = list(groups.keys())
 
 xs, dat = pool_data(all_avg_pks_cnt, timestamps, groups, pool_times, fill_missing)
 plt.figure(figsize=(7,7))
-plt.fill_between(range(1, len(xs)+1), [mean(e) -std(e) for e in dat],
-                 [mean(e) + std(e) for e in dat], alpha=0.3)
-plt.plot(range(1, len(xs)+1), [mean(e) for e in dat])
-plt.xticks(ticks=range(1, len(dat) + 1), labels=xs, rotation=90)
-plt.ylabel('Number of peaks')
-plt.savefig(join(out_dir, "peaks_count.png"), dpi=300, bbox_inches='tight',pad_inches=0)
-
-with open(join(out_dir, "peaks_count.txt"), 'w') as f:
-    f.write("Time, AVG, STD\n")
-    for i in range(len(xs)):
-        f.write("{}, {}, {}\n".format(xs[i], mean(dat[i]), std(dat[i])))
-
-plt.figure(figsize=(7,7))
-dat = pool_data_avg_per_well(all_avg_pks_cnt, list(groups.keys())[0], timestamps, fill_missing)
-for k in all_avg_pks_amps[list(groups.keys())[0]].keys():
-    plt.errorbar(dat[k][0], [mean(e) for e in dat[k][1]], [std(e) for e in dat[k][1]])
+for k in range(len(groups.keys())):
+    # plt.fill_between(range(1, len(timestamps)+1),
+    #                  [mean(e) -std(e) for e in dat[k]],
+    #                  [mean(e) + std(e) for e in dat[k]], alpha=0.3)
+    plt.plot(range(1, len(timestamps)+1), [mean(e) for e in dat[k]], color=groups_col[groups_keys[k]])
 plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamps, rotation=90)
-plt.ylabel('Number of peaks')
-#plt.ylim(ymin = 0)
-plt.savefig(join(out_dir, "peaks_count_wells.png"), dpi=300, bbox_inches='tight',pad_inches=0)
-
-with open(join(out_dir, "peaks_count_wells.txt"), 'w') as f:
-    f.write("Time, {}\n".format(", ".join(["Count_" + k for k in dat.keys()])))
-    for i in range(len(xs)):
-        vals = []
-        for k in dat:
-            if i < len(dat[k][1]):
-                vals.append(str(dat[k][1][i][0]))
-            else:
-                vals.append("NaN")
-        f.write("{}, {}\n".format(xs[i], ", ".join(vals)))
-
-if time_groups:
-    dats_t = pool_data_timecat(all_avg_pks_cnt, timestamps, list(groups.keys())[0], time_groups, fill_missing)
-    plt.figure(figsize=(7,7))
-    plt.bar([time_groups_names[k] for k in set(time_groups)], [mean(dats_t[k]) for k in set(time_groups)])
-    plt.ylabel('Number of peaks')
-    plt.savefig(join(out_dir, "peaks_count_bar.png"), dpi=300, bbox_inches='tight',pad_inches=0)
-
-    with open(join(out_dir, "peaks_count_time.txt"), 'w') as f:
-        f.write(", ".join([str(k) for k in set(time_groups)]) + "\n")
-        for i in range(max([len(d) for d in dats_t.values()])):
-            f.write(", ".join(["{:.3f}".format(dats_t[k][i]) for k in dats_t.keys()]) + "\n")
-
-    print("Peak count:")
-    for i in set(time_groups):
-        print("{}: AVG ± SD = {:.2f} ± {:.2f}".format(time_groups_names[i], mean(dats_t[i]), std(dats_t[i])))
-    for i in set(time_groups):
-        for j in set(time_groups):
-            if j > i:
-                print("ANOVA {} vs {}: p = {:.6f}"
-                      .format(time_groups_names[i], time_groups_names[j], f_oneway(dats_t[i], dats_t[j]).pvalue))
+plt.ylabel('Average number of peaks')
+plt.savefig(join(out_dir, "peaks_count.png"), dpi=300, bbox_inches='tight',pad_inches=0)
 
 
 xs, dat = pool_data(all_traces_cnt, timestamps, groups, pool_times, fill_missing)
 plt.figure(figsize=(7,7))
-plt.fill_between(range(1, len(xs)+1), [mean(e) -std(e) for e in dat],
-                 [mean(e) + std(e) for e in dat], alpha=0.3)
-plt.plot(range(1, len(xs)+1), [mean(e) for e in dat])
-plt.xticks(ticks=range(1, len(dat) + 1), labels=xs, rotation=90)
+for k in range(len(groups.keys())):
+    # plt.fill_between(range(1, len(timestamps)+1),
+    #                   [mean(e) -std(e) for e in dat[k]],
+    #                   [mean(e) + std(e) for e in dat[k]], alpha=0.3)
+    plt.plot(range(1, len(timestamps)+1), [mean(e) for e in dat[k]], color=groups_col[groups_keys[k]])
+plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamps, rotation=90)
 plt.ylabel('Number of traces')
 plt.savefig(join(out_dir, "traces_count.png"), dpi=300, bbox_inches='tight',pad_inches=0)
 
-with open(join(out_dir, "traces_count.txt"), 'w') as f:
-    f.write("Time, AVG, STD\n")
-    for i in range(len(xs)):
-        f.write("{}, {}, {}\n".format(xs[i], mean(dat[i]), std(dat[i])))
-
-plt.figure(figsize=(7,7))
-dat = pool_data_avg_per_well(all_traces_cnt, list(groups.keys())[0], timestamps, fill_missing)
-for k in dat.keys():
-    plt.errorbar(dat[k][0], [mean(e) for e in dat[k][1]], [std(e) for e in dat[k][1]])
-plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamps, rotation=90)
-plt.ylabel('Number of traces')
-#plt.ylim(ymin = 0)
-plt.savefig(join(out_dir, "traces_count_wells.png"), dpi=300, bbox_inches='tight',pad_inches=0)
-
-with open(join(out_dir, "traces_count_wells.txt"), 'w') as f:
-    f.write("Time, {}\n".format(", ".join(["Count_" + k for k in dat.keys()])))
-    for i in range(len(xs)):
-        vals = []
-        for k in dat:
-            if i < len(dat[k][1]):
-                vals.append(str(dat[k][1][i][0]))
-            else:
-                vals.append("NaN")
-        f.write("{}, {}\n".format(xs[i], ", ".join(vals)))
-
-if time_groups:
-    dats_t = pool_data_timecat(all_traces_cnt, timestamps, list(groups.keys())[0], time_groups, fill_missing)
-    plt.figure(figsize=(7,7))
-    plt.bar([time_groups_names[k] for k in set(time_groups)], [mean(dats_t[k]) for k in set(time_groups)])
-    plt.ylabel('Number of traces')
-    plt.savefig(join(out_dir, "traces_count_bar.png"), dpi=300, bbox_inches='tight',pad_inches=0)
-
-    with open(join(out_dir, "traces_count_time.txt"), 'w') as f:
-        f.write(", ".join([str(k) for k in set(time_groups)]) + "\n")
-        for i in range(max([len(d) for d in dats_t.values()])):
-            f.write(", ".join(["{:.3f}".format(dats_t[k][i]) for k in dats_t.keys()]) + "\n")
-
-    print("traces count:")
-    for i in set(time_groups):
-        print("{}: AVG ± SD = {:.2f} ± {:.2f}".format(time_groups_names[i], mean(dats_t[i]), std(dats_t[i])))
-    for i in set(time_groups):
-        for j in set(time_groups):
-            if j > i:
-                print("ANOVA {} vs {}: p = {:.6f}"
-                      .format(time_groups_names[i], time_groups_names[j], f_oneway(dats_t[i], dats_t[j]).pvalue))
-
-
-
-# xs, dat = pool_data(all_avg_pks_freqs, timestamps, groups, pool_times)
-# v_x = []
-# v_y = []
-# for i in range(len(dat)):
-#     v_x.extend([i] * len(dat[i]))
-#     v_y.extend(dat[i])
-# plt.figure(figsize=(7,7))
-# p = sns.violinplot(x=v_x, y=v_y, cut=0)
-# plt.ylabel('Peak Frequency (Hz)')
-# p.set_xticklabels(timestamps, rotation=90)
-# plt.ylim([0, 0.4])
-# plt.savefig(join(out_dir, "peaks_freq.png"), dpi=300, bbox_inches='tight',pad_inches=0)
 
 xs, dat = pool_data(all_avg_pks_freqs, timestamps, groups, pool_times, fill_missing)
 plt.figure(figsize=(7,7))
-plt.fill_between(range(1, len(xs)+1), [mean(e) -std(e) for e in dat],
-                 [mean(e) + std(e) for e in dat], alpha=0.3)
-plt.plot(range(1, len(xs)+1), [mean(e) for e in dat])
-plt.xticks(ticks=range(1, len(dat) + 1), labels=xs, rotation=90)
+for k in range(len(groups.keys())):
+    # plt.fill_between(range(1, len(timestamps)+1),
+    #                   [mean(e) -std(e) for e in dat[k]],
+    #                   [mean(e) + std(e) for e in dat[k]], alpha=0.3)
+    plt.plot(range(1, len(timestamps)+1), [mean(e) for e in dat[k]], color=groups_col[groups_keys[k]])
+plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamps, rotation=90)
 #plt.ylim([0, 0.8])
 plt.ylabel('Peak Frequency (Hz)')
 plt.savefig(join(out_dir, "peaks_freq.png"), dpi=300, bbox_inches='tight',pad_inches=0)
 
-with open(join(out_dir, "peaks_freq.txt"), 'w') as f:
-    f.write("Time, AVG, STD\n")
-    for i in range(len(xs)):
-        f.write("{}, {}, {}\n".format(xs[i], mean(dat[i]), std(dat[i])))
-
-
-plt.figure(figsize=(7,7))
-dat = pool_data_avg_per_well(all_avg_pks_freqs, list(groups.keys())[0], timestamps, fill_missing)
-for k in dat.keys():
-    plt.errorbar(dat[k][0], [mean(e) for e in dat[k][1]], [std(e) for e in dat[k][1]])
-plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamps, rotation=90)
-plt.ylabel('Peak Frequency (Hz)')
-plt.ylim(ymin = 0)
-plt.savefig(join(out_dir, "peaks_freq_wells.png"), dpi=300, bbox_inches='tight',pad_inches=0)
-
-with open(join(out_dir, "peaks_freq_wells.txt"), 'w') as f:
-    f.write("Time, {}\n".format(", ".join(["AVG_" + k + ", STD_" + k for k in dat.keys()])))
-    for i in range(len(xs)):
-        vals = []
-        for k in dat:
-            if i < len(dat[k][1]):
-                vals.append("{:.3f}, {:.3f}".format(mean(dat[k][1][i]), std(dat[k][1][i])))
-            else:
-                vals.append("NaN, NaN")
-        f.write("{}, {}\n".format(xs[i], ", ".join(vals)))
-
-
-if time_groups:
-    dats_t = pool_data_timecat(all_avg_pks_freqs, timestamps, list(groups.keys())[0], time_groups, fill_missing)
-    plt.figure(figsize=(7,7))
-    plt.bar([time_groups_names[k] for k in set(time_groups)], [mean(dats_t[k]) for k in set(time_groups)])
-    plt.ylabel('Peak Frequency (Hz)')
-    plt.savefig(join(out_dir, "peaks_freq_bar.png"), dpi=300, bbox_inches='tight',pad_inches=0)
-
-    with open(join(out_dir, "peaks_freq_time.txt"), 'w') as f:
-        f.write(", ".join([str(k) for k in set(time_groups)]) + "\n")
-        for i in range(max([len(d) for d in dats_t.values()])):
-            f.write(", ".join(["{:.3f}".format(dats_t[k][i]) for k in dats_t.keys()]) + "\n")
-
-    print("Peak frequency:")
-    for i in set(time_groups):
-        print("{}: AVG ± SD = {:.2f} ± {:.2f}".format(time_groups_names[i], mean(dats_t[i]), std(dats_t[i])))
-    for i in set(time_groups):
-        for j in set(time_groups):
-            if j > i:
-                print("ANOVA {} vs {}: p = {:.6f}"
-                      .format(time_groups_names[i], time_groups_names[j], f_oneway(dats_t[i], dats_t[j]).pvalue))
-
-#plt.figure(figsize=(7,7))
-#p = plt.boxplot(dat)
-#for i in range(len(dat)):
-#    plt.plot(i + 1 + (rand(len(dat[i])) - 0.5) * 0.2, dat[i], 'x' + groups_col[gkeys[i % len(groups.keys())]])
-#plt.xticks(ticks=range(1, len(dat) + 1), labels=xs, rotation=90)
-#plt.ylabel('Peak Frequency (Hz)')
-#plt.savefig(join(out_dir, "peaks_freq.png"), dpi=300, bbox_inches='tight',pad_inches=0)
-
-
-# xs, dat = pool_data(all_avg_pks_amps, timestamps, groups, pool_times)
-# v_x = []
-# v_y = []
-# for i in range(len(dat)):
-#     v_x.extend([i] * len(dat[i]))
-#     v_y.extend(dat[i])
-# plt.figure(figsize=(7,7))
-# p = sns.violinplot(x=v_x, y=v_y, cut=0)
-# plt.ylabel('Peak amplitude (AU)')
-# p.set_xticklabels(timestamps, rotation=90)
-# plt.savefig(join(out_dir, "peaks_amp.png"), dpi=300, bbox_inches='tight',pad_inches=0)
-
-# xs, dat = pool_data(all_avg_pks_amps, timestamps, groups, pool_times)
-# plt.figure(figsize=(7,7))
-# plt.fill_between(range(1, len(xs)+1), [mean(e) -std(e) for e in dat],
-#                  [mean(e) + std(e) for e in dat], alpha=0.3)
-# plt.plot(range(1, len(xs)+1), [mean(e) for e in dat])
-# plt.xticks(ticks=range(1, len(dat) + 1), labels=xs, rotation=90)
-# plt.ylabel('Peak amplitude (AU)')
-#plt.savefig(join(out_dir, "peaks_freq.png"), dpi=300, bbox_inches='tight',pad_inches=0)
-
 xs, dat = pool_data(all_avg_pks_amps, timestamps, groups, pool_times, fill_missing)
 plt.figure(figsize=(7,7))
-plt.fill_between(range(1, len(xs)+1), [mean(e) - std(e) for e in dat],
-                 [mean(e) + std(e) for e in dat], alpha=0.3)
-plt.plot(range(1, len(xs)+1), [mean(e) for e in dat])
-plt.xticks(ticks=range(1, len(dat) + 1), labels=xs, rotation=90)
+for k in range(len(groups.keys())):
+    # plt.fill_between(range(1, len(timestamps)+1),
+    #                   [mean(e) -std(e) for e in dat[k]],
+    #                   [mean(e) + std(e) for e in dat[k]], alpha=0.3)
+    plt.plot(range(1, len(timestamps)+1), [mean(e) for e in dat[k]], color=groups_col[groups_keys[k]])
+plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamps, rotation=90)
 plt.ylabel('Peak amplitude (AU)')
 plt.savefig(join(out_dir, "peaks_amplitude.png"), dpi=300, bbox_inches='tight',pad_inches=0)
 
-with open(join(out_dir, "peaks_amplitude.txt"), 'w') as f:
-    f.write("Time, AVG, STD\n")
-    for i in range(len(xs)):
-        f.write("{}, {}, {}\n".format(xs[i], mean(dat[i]), std(dat[i])))
-
-
-plt.figure(figsize=(7,7))
-dat = pool_data_avg_per_well(all_avg_pks_amps, list(groups.keys())[0], timestamps, fill_missing)
-for k in dat.keys():
-    plt.errorbar(dat[k][0], [mean(e) for e in dat[k][1]], [std(e) for e in dat[k][1]])
-plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamps, rotation=90)
-plt.ylabel('Peak amplitude (AU)')
-plt.ylim(ymin = 0)
-plt.savefig(join(out_dir, "peaks_amplitude_wells.png"), dpi=300, bbox_inches='tight',pad_inches=0)
-
-with open(join(out_dir, "peaks_amplitude_wells.txt"), 'w') as f:
-    f.write("Time, {}\n".format(", ".join(["AVG_" + k + ", STD_" + k for k in dat.keys()])))
-    for i in range(len(xs)):
-        vals = []
-        for k in dat:
-            if i < len(dat[k][1]):
-                vals.append("{:.3f}, {:.3f}".format(mean(dat[k][1][i]), std(dat[k][1][i])))
-            else:
-                vals.append("NaN, NaN")
-        f.write("{}, {}\n".format(xs[i], ", ".join(vals)))
-
-if time_groups:
-    dats_t = pool_data_timecat(all_avg_pks_amps, timestamps, list(groups.keys())[0], time_groups, fill_missing)
-    plt.figure(figsize=(7,7))
-    plt.bar([time_groups_names[k] for k in set(time_groups)], [mean(dats_t[k]) for k in set(time_groups)])
-    plt.ylabel('Peak amplitude (AU)')
-    plt.savefig(join(out_dir, "peaks_amplitude_bar.png"), dpi=300, bbox_inches='tight',pad_inches=0)
-
-    with open(join(out_dir, "peaks_amplitude_time.txt"), 'w') as f:
-        f.write(", ".join([str(k) for k in set(time_groups)]) + "\n")
-        for i in range(max([len(d) for d in dats_t.values()])):
-            f.write(", ".join(["{:.3f}".format(dats_t[k][i]) for k in dats_t.keys()]) + "\n")
-
-    print("Peak amplitude:")
-    for i in set(time_groups):
-        print("{}: AVG ± SD = {:.2f} ± {:.2f}".format(time_groups_names[i], mean(dats_t[i]), std(dats_t[i])))
-    for i in set(time_groups):
-        for j in set(time_groups):
-            if j > i:
-                print("ANOVA {} vs {}: p = {:.6f}"
-                      .format(time_groups_names[i], time_groups_names[j], f_oneway(dats_t[i], dats_t[j]).pvalue))
-
-#plt.figure(figsize=(7,7))
-#p = plt.boxplot(dat)
-#for i in range(len(dat)):
-#    plt.plot(i + 1 + (rand(len(dat[i])) - 0.5) * 0.2, dat[i], 'x' + groups_col[gkeys[i % len(groups.keys())]])
-#plt.xticks(ticks=range(1, len(dat) + 1), labels=xs, rotation=90)
-#plt.ylabel('Peak amplitude (AU)')
-#plt.savefig(join(out_dir, "peaks_amp.png"), dpi=300, bbox_inches='tight',pad_inches=0)
-
-
-# xs, dat = pool_data(all_avg_pks_fwhm, timestamps, groups, pool_times)
-# v_x = []
-# v_y = []
-# for i in range(len(dat)):
-#     v_x.extend([i] * len(dat[i]))
-#     v_y.extend(dat[i])
-# plt.figure(figsize=(7,7))
-# p = sns.violinplot(x=v_x, y=v_y, cut=0)
-# p.set_xticklabels(timestamps, rotation=90)
-# plt.ylabel('Peak width (s)')
-# plt.savefig(join(out_dir, "peaks_width.png"), dpi=300, bbox_inches='tight',pad_inches=0)
 
 xs, dat = pool_data(all_avg_pks_fwhm, timestamps, groups, pool_times, fill_missing)
 plt.figure(figsize=(7,7))
-plt.fill_between(range(1, len(xs)+1), [mean(e) -std(e) for e in dat],
-                 [mean(e) + std(e) for e in dat], alpha=0.3)
-plt.plot(range(1, len(xs)+1), [mean(e) for e in dat])
-plt.xticks(ticks=range(1, len(dat) + 1), labels=xs, rotation=90)
-plt.ylabel('Peak width (s)')
-plt.savefig(join(out_dir, "peaks_width.png"), dpi=300, bbox_inches='tight',pad_inches=0)
-
-with open(join(out_dir, "peaks_width.txt"), 'w') as f:
-    f.write("Time, AVG, STD\n")
-    for i in range(len(xs)):
-        f.write("{}, {}, {}\n".format(xs[i], mean(dat[i]), std(dat[i])))
-
-plt.figure(figsize=(7,7))
-dat = pool_data_avg_per_well(all_avg_pks_fwhm, list(groups.keys())[0], timestamps, fill_missing)
-for k in dat.keys():
-    plt.errorbar(dat[k][0], [mean(e) for e in dat[k][1]], [std(e) for e in dat[k][1]])
+for k in range(len(groups.keys())):
+    # plt.fill_between(range(1, len(timestamps)+1),
+    #                   [mean(e) -std(e) for e in dat[k]],
+    #                   [mean(e) + std(e) for e in dat[k]], alpha=0.3)
+    plt.plot(range(1, len(timestamps)+1), [mean(e) for e in dat[k]], color=groups_col[groups_keys[k]])
 plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamps, rotation=90)
 plt.ylabel('Peak width (s)')
-plt.ylim(ymin = 0)
-plt.savefig(join(out_dir, "peaks_width_wells.png"), dpi=300, bbox_inches='tight',pad_inches=0)
-
-
-with open(join(out_dir, "peaks_width_wells.txt"), 'w') as f:
-    f.write("Time, {}\n".format(", ".join(["AVG_" + k + ", STD_" + k for k in dat.keys()])))
-    for i in range(len(xs)):
-        vals = []
-        for k in dat:
-            if i < len(dat[k][1]):
-                vals.append("{:.3f}, {:.3f}".format(mean(dat[k][1][i]), std(dat[k][1][i])))
-            else:
-                vals.append("NaN, NaN")
-        f.write("{}, {}\n".format(xs[i], ", ".join(vals)))
-
-if time_groups:
-    dats_t = pool_data_timecat(all_avg_pks_fwhm, timestamps, list(groups.keys())[0], time_groups, fill_missing)
-    plt.figure(figsize=(7,7))
-    plt.bar([time_groups_names[k] for k in set(time_groups)], [mean(dats_t[k]) for k in set(time_groups)])
-    plt.ylabel('AVG Peak width (s)')
-    plt.savefig(join(out_dir, "peaks_width_bar.png"), dpi=300, bbox_inches='tight',pad_inches=0)
-
-    with open(join(out_dir, "peaks_width_time.txt"), 'w') as f:
-        f.write(", ".join([str(k) for k in set(time_groups)]) + "\n")
-        for i in range(max([len(d) for d in dats_t.values()])):
-            f.write(", ".join(["{:.3f}".format(dats_t[k][i]) for k in dats_t.keys()]) + "\n")
-
-    print("Peak width:")
-    for i in set(time_groups):
-        print("{}: AVG ± SD = {:.2f} ± {:.2f}".format(time_groups_names[i], mean(dats_t[i]), std(dats_t[i])))
-    for i in set(time_groups):
-        for j in set(time_groups):
-            if j > i:
-                print("ANOVA {} vs {}: p = {:.6f}"
-                      .format(time_groups_names[i], time_groups_names[j], f_oneway(dats_t[i], dats_t[j]).pvalue))
+plt.savefig(join(out_dir, "peaks_width.png"), dpi=300, bbox_inches='tight',pad_inches=0)
 
 
 xs, dat = pool_data(all_max_ccor, timestamps, groups, pool_times, fill_missing)
 plt.figure(figsize=(7,7))
-plt.fill_between(range(1, len(xs)+1), [mean(e) - std(e) for e in dat],
-                 [mean(e) + std(e) for e in dat], alpha=0.3)
-plt.plot(range(1, len(xs)+1), [mean(e) for e in dat])
-plt.xticks(ticks=range(1, len(dat) + 1), labels=xs, rotation=90)
+for k in range(len(groups.keys())):
+    # plt.fill_between(range(1, len(timestamps)+1),
+    #                   [mean(e) -std(e) for e in dat[k]],
+    #                   [mean(e) + std(e) for e in dat[k]], alpha=0.3)
+    plt.plot(range(1, len(timestamps)+1), [mean(e) for e in dat[k]], color=groups_col[groups_keys[k]])
+plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamps, rotation=90)
 plt.ylabel('AVG max correlation')
 #plt.ylim([0.6, 1])
 plt.savefig(join(out_dir, "corr.png"), dpi=300, bbox_inches='tight',pad_inches=0)
 
-with open(join(out_dir, "corr.txt"), 'w') as f:
-    f.write("Time, AVG, STD\n")
-    for i in range(len(xs)):
-        f.write("{}, {:.3f}, {:.3f}\n".format(xs[i], mean(dat[i]), std(dat[i])))
 
+k = "cntrl"
 plt.figure(figsize=(7,7))
-dat = pool_data_avg_per_well(all_max_ccor, list(groups.keys())[0], timestamps, fill_missing)
-for k in dat.keys():
-    plt.errorbar(dat[k][0], [mean(e) for e in dat[k][1]], [std(e) for e in dat[k][1]])
-plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamps, rotation=90)
-plt.ylabel('AVG max correlation')
-plt.ylim(ymax = 1)
-plt.savefig(join(out_dir, "corr_wells.png"), dpi=300, bbox_inches='tight',pad_inches=0)
-
-with open(join(out_dir, "corr_wells.txt"), 'w') as f:
-    f.write("Time, {}\n".format(", ".join(["AVG_" + k + ", STD_" + k for k in dat.keys()])))
-    for i in range(len(xs)):
-        vals = []
-        for k in dat:
-            if i < len(dat[k][1]):
-                vals.append("{:.3f}, {:.3f}".format(mean(dat[k][1][i]), std(dat[k][1][i])))
-            else:
-                vals.append("NaN, NaN")
-        f.write("{}, {}\n".format(xs[i], ", ".join(vals)))
-
-if time_groups:
-    dats_t = pool_data_timecat(all_max_ccor, timestamps, list(groups.keys())[0], time_groups, fill_missing)
-    plt.figure(figsize=(7,7))
-    plt.bar([time_groups_names[k] for k in set(time_groups)], [mean(dats_t[k]) for k in set(time_groups)])
-    plt.ylabel('AVG max correlation')
-    plt.savefig(join(out_dir, "corr_bar.png"), dpi=300, bbox_inches='tight',pad_inches=0)
-
-    with open(join(out_dir, "corr_time.txt"), 'w') as f:
-        f.write(", ".join([str(k) for k in set(time_groups)]) + "\n")
-        for i in range(max([len(d) for d in dats_t.values()])):
-            f.write(", ".join(["{:.3f}".format(dats_t[k][i]) for k in dats_t.keys()]) + "\n")
-
-    print("Peak correlation:")
-    for i in set(time_groups):
-        print("{}: AVG ± SD = {:.2f} ± {:.2f}".format(time_groups_names[i], mean(dats_t[i]), std(dats_t[i])))
-    for i in set(time_groups):
-        for j in set(time_groups):
-            if j > i:
-                print("ANOVA {} vs {}: p = {:.6f}"
-                      .format(time_groups_names[i], time_groups_names[j], f_oneway(dats_t[i], dats_t[j]).pvalue))
+for w,v in all_max_ccor[k].items():
+    n = mean(v[timestamps[0]])
+    plt.plot(range(6), [mean(v[ts]) / n for ts in timestamps])
+n = mean(dat[6][0])
+plt.plot(range(6), [mean(e) / n for e in dat[6]], color=[0,0,0])
