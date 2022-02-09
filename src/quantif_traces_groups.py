@@ -164,8 +164,11 @@ pk_smooth_factor = 1.3
 # plot_indiv_traces = False
 # pk_smooth_factor=1.1
 
+#these values must be present in the config file
 proc_dir = None
-sys.path.append("C:/Users/39329/Desktop/ML/241121")
+pk_smooth_factor = None
+
+sys.path.append("/mnt/data2/calcium_incucyte/ML/241121")
 from analysis_config import *
 excluded_ts = []
 groups = {"chol" : ["C6", "C7", "C8"],
@@ -186,7 +189,6 @@ time_groups = [1] * 6
 time_groups_names = {1: "aa"}
 fill_missing = False
 plot_indiv_traces = False
-pk_smooth_factor=1.1
 
 DT = 0.33
 pxsize = 0.2646 #mm
@@ -195,7 +197,7 @@ pxsize = 0.2646 #mm
 
 gkeys = list(groups.keys())
 pool_times = False
-min_traces = 50
+min_traces = 550 #50
 
 timestamps = set()
 
@@ -325,7 +327,21 @@ for cpt,fname in enumerate(all_files):
 
 timestamps = sorted(timestamps,
                     key=lambda e: int(e.split("d")[0]) * 1440 + int(e.split("d")[1].split("h")[0]) * 60 + int(e.split("h")[1].split("m")[0]))
+timestamp_disps = range(len(timestamps))
 groups_keys = list(groups.keys())
+
+xs, dat = pool_data(all_traces_cnt, timestamps, groups, pool_times, fill_missing)
+plt.figure(figsize=(7,7))
+for k in range(len(groups.keys())):
+    plt.fill_between(range(1, len(timestamps)+1),
+                      [mean(e) -std(e) for e in dat[k]],
+                      [mean(e) + std(e) for e in dat[k]], alpha=0.3, color=groups_col[groups_keys[k]])
+    plt.plot(range(1, len(timestamps)+1), [mean(e) for e in dat[k]], color=groups_col[groups_keys[k]])
+plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamp_disps, rotation=0)
+plt.xlabel('Days after treatment')
+plt.ylabel('Average number of traces')
+plt.savefig(join(out_dir, "traces_count.png"), dpi=300, bbox_inches='tight',pad_inches=0)
+
 
 xs, dat = pool_data(all_avg_pks_cnt, timestamps, groups, pool_times, fill_missing)
 plt.figure(figsize=(7,7))
@@ -334,21 +350,10 @@ for k in range(len(groups.keys())):
     #                  [mean(e) -std(e) for e in dat[k]],
     #                  [mean(e) + std(e) for e in dat[k]], alpha=0.3)
     plt.plot(range(1, len(timestamps)+1), [mean(e) for e in dat[k]], color=groups_col[groups_keys[k]])
-plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamps, rotation=90)
+plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamp_disps, rotation=0)
+plt.xlabel('Days after treatment')
 plt.ylabel('Average number of peaks')
 plt.savefig(join(out_dir, "peaks_count.png"), dpi=300, bbox_inches='tight',pad_inches=0)
-
-
-xs, dat = pool_data(all_traces_cnt, timestamps, groups, pool_times, fill_missing)
-plt.figure(figsize=(7,7))
-for k in range(len(groups.keys())):
-    # plt.fill_between(range(1, len(timestamps)+1),
-    #                   [mean(e) -std(e) for e in dat[k]],
-    #                   [mean(e) + std(e) for e in dat[k]], alpha=0.3)
-    plt.plot(range(1, len(timestamps)+1), [mean(e) for e in dat[k]], color=groups_col[groups_keys[k]])
-plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamps, rotation=90)
-plt.ylabel('Number of traces')
-plt.savefig(join(out_dir, "traces_count.png"), dpi=300, bbox_inches='tight',pad_inches=0)
 
 
 xs, dat = pool_data(all_avg_pks_freqs, timestamps, groups, pool_times, fill_missing)
@@ -358,8 +363,8 @@ for k in range(len(groups.keys())):
     #                   [mean(e) -std(e) for e in dat[k]],
     #                   [mean(e) + std(e) for e in dat[k]], alpha=0.3)
     plt.plot(range(1, len(timestamps)+1), [mean(e) for e in dat[k]], color=groups_col[groups_keys[k]])
-plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamps, rotation=90)
-#plt.ylim([0, 0.8])
+plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamp_disps, rotation=0)
+plt.xlabel('Days after treatment')
 plt.ylabel('Peak Frequency (Hz)')
 plt.savefig(join(out_dir, "peaks_freq.png"), dpi=300, bbox_inches='tight',pad_inches=0)
 
@@ -370,7 +375,8 @@ for k in range(len(groups.keys())):
     #                   [mean(e) -std(e) for e in dat[k]],
     #                   [mean(e) + std(e) for e in dat[k]], alpha=0.3)
     plt.plot(range(1, len(timestamps)+1), [mean(e) for e in dat[k]], color=groups_col[groups_keys[k]])
-plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamps, rotation=90)
+plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamp_disps, rotation=0)
+plt.xlabel('Days after treatment')
 plt.ylabel('Peak amplitude (AU)')
 plt.savefig(join(out_dir, "peaks_amplitude.png"), dpi=300, bbox_inches='tight',pad_inches=0)
 
@@ -378,13 +384,29 @@ plt.savefig(join(out_dir, "peaks_amplitude.png"), dpi=300, bbox_inches='tight',p
 xs, dat = pool_data(all_avg_pks_fwhm, timestamps, groups, pool_times, fill_missing)
 plt.figure(figsize=(7,7))
 for k in range(len(groups.keys())):
-    # plt.fill_between(range(1, len(timestamps)+1),
-    #                   [mean(e) -std(e) for e in dat[k]],
-    #                   [mean(e) + std(e) for e in dat[k]], alpha=0.3)
+    plt.fill_between(range(1, len(timestamps)+1),
+                      [mean(e) -std(e) for e in dat[k]],
+                      [mean(e) + std(e) for e in dat[k]], alpha=0.3, color=groups_col[groups_keys[k]])
     plt.plot(range(1, len(timestamps)+1), [mean(e) for e in dat[k]], color=groups_col[groups_keys[k]])
-plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamps, rotation=90)
+plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamp_disps, rotation=0)
+plt.xlabel('Days after treatment')
 plt.ylabel('Peak width (s)')
 plt.savefig(join(out_dir, "peaks_width.png"), dpi=300, bbox_inches='tight',pad_inches=0)
+
+plt.figure(figsize=(7,7))
+for i, k in enumerate(groups_keys):
+    vs = []
+    for w,v in all_avg_pks_fwhm[k].items():
+        vs.append([mean(v[ts]) for ts in timestamps])
+    plt.plot(range(1, len(timestamps) + 1), [mean([e[i] for e in vs]) for i in range(6)], color=groups_col[groups_keys[i]])
+    plt.fill_between(range(1, len(timestamps) + 1),
+                     [mean([e[i] for e in vs]) - std([e[i] for e in vs]) for i in range(6)],
+                     [mean([e[i] for e in vs]) + std([e[i] for e in vs]) for i in range(6)], alpha=0.3, color=groups_col[groups_keys[i]])
+plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamp_disps, rotation=0)
+plt.xlabel('Days after treatment')
+plt.ylabel('Average peak width (s)')
+plt.savefig(join(out_dir, "peaks_width_notpooled.png"), dpi=300, bbox_inches='tight',pad_inches=0)
+
 
 
 xs, dat = pool_data(all_max_ccor, timestamps, groups, pool_times, fill_missing)
@@ -394,16 +416,39 @@ for k in range(len(groups.keys())):
     #                   [mean(e) -std(e) for e in dat[k]],
     #                   [mean(e) + std(e) for e in dat[k]], alpha=0.3)
     plt.plot(range(1, len(timestamps)+1), [mean(e) for e in dat[k]], color=groups_col[groups_keys[k]])
-plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamps, rotation=90)
+plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamp_disps, rotation=0)
+plt.xlabel('Days after treatment')
 plt.ylabel('AVG max correlation')
-#plt.ylim([0.6, 1])
 plt.savefig(join(out_dir, "corr.png"), dpi=300, bbox_inches='tight',pad_inches=0)
 
-
-k = "cntrl"
 plt.figure(figsize=(7,7))
-for w,v in all_max_ccor[k].items():
-    n = mean(v[timestamps[0]])
-    plt.plot(range(6), [mean(v[ts]) / n for ts in timestamps])
-n = mean(dat[6][0])
-plt.plot(range(6), [mean(e) / n for e in dat[6]], color=[0,0,0])
+for i, k in enumerate(groups_keys):
+    vs = []
+    for w,v in all_max_ccor[k].items():
+        vs.append([mean(v[ts]) for ts in timestamps])
+    plt.plot(range(1, len(timestamps)+1), [mean([e[i] for e in vs]) for i in range(6)], color=groups_col[groups_keys[i]])
+    plt.fill_between(range(1, len(timestamps)+1),
+                     [mean([e[i] for e in vs]) - std([e[i] for e in vs]) for i in range(6)],
+                     [mean([e[i] for e in vs]) + std([e[i] for e in vs]) for i in range(6)], alpha=0.3, color=groups_col[groups_keys[i]])
+plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamp_disps, rotation=0)
+plt.xlabel('Days after treatment')
+plt.ylabel('AVG delta max correlation')
+plt.savefig(join(out_dir, "corr_notpooled.png"), dpi=300, bbox_inches='tight',pad_inches=0)
+
+plt.figure(figsize=(7,7))
+for i, k in enumerate(groups_keys):
+    vs = []
+    for w,v in all_max_ccor[k].items():
+        n = mean(v[timestamps[0]])
+        vs.append([mean(v[ts] - n) for ts in timestamps])
+    plt.plot(range(1, len(timestamps)+1), [mean([e[i] for e in vs]) for i in range(6)], color=groups_col[groups_keys[i]])
+    plt.fill_between(range(1, len(timestamps)+1),
+                     [mean([e[i] for e in vs]) - std([e[i] for e in vs]) for i in range(6)],
+                     [mean([e[i] for e in vs]) + std([e[i] for e in vs]) for i in range(6)], alpha=0.3, color=groups_col[groups_keys[i]])
+plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamp_disps, rotation=0)
+plt.xlabel('Days after treatment')
+plt.ylabel('AVG delta max correlation')
+plt.savefig(join(out_dir, "corr_delta_notpooled.png"), dpi=300, bbox_inches='tight',pad_inches=0)
+
+
+
