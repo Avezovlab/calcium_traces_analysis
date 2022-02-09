@@ -6,7 +6,7 @@ Created on Sun Mar  7 19:49:09 2021
 @author: pierre
 """
 
-
+import sys
 from os.path import join, isdir
 from os import listdir, makedirs
 
@@ -153,8 +153,20 @@ pk_smooth_factor = 1.3
 # fill_missing = True
 # plot_indiv_traces = True
 
-base_dir = "C:/Users/39329/Desktop/ML/241121/traces_objects"
-out_dir = "C:/Users/39329/Desktop/ML/241121/res"
+# base_dir = "/mnt/nmve/vd_cyrcadyan/traces"
+# out_dir = "/tmp/a/vd_cyrcadyan"
+# excluded_ts = []
+# groups = {"": ["C3", "C4", "C5"]}
+# groups_col = {"": 'k'}
+# time_groups = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+# time_groups_names = {1: "aa"}
+# fill_missing = False
+# plot_indiv_traces = False
+# pk_smooth_factor=1.1
+
+proc_dir = None
+sys.path.append("C:/Users/39329/Desktop/ML/241121")
+from analysis_config import *
 excluded_ts = []
 groups = {"chol" : ["C6", "C7", "C8"],
           "asyn" : ["D3", "D4", "D5"], "chol + asyn" : ["D6", "D7", "D8"], 
@@ -169,14 +181,12 @@ groups_col = {'chol': [228 / 255, 26 / 255, 28 / 255],
               'U188A + asyn + chol': [255 / 255, 127 / 255, 0 / 255],
               'U188A': [166 / 255, 86 / 255, 40 / 255],
               'cntrl': [0, 0, 0]}
-time_groups = [1, 1, 1, 1, 1, 1]
+time_groups = [1] * 6
+
 time_groups_names = {1: "aa"}
 fill_missing = False
-plot_indiv_traces = True
+plot_indiv_traces = False
 pk_smooth_factor=1.1
-
-if not isdir(out_dir):
-    makedirs(out_dir)
 
 DT = 0.33
 pxsize = 0.2646 #mm
@@ -189,6 +199,13 @@ min_traces = 50
 
 timestamps = set()
 
+
+base_dir = join(proc_dir, "traces")
+out_dir = join(proc_dir, "res")
+
+if not isdir(out_dir):
+    makedirs(out_dir)
+
 all_files =  [f for f in listdir(base_dir) if f.startswith("traces")]
 all_traces_cnt = {k:{} for k in groups.keys()}
 all_avg_pks_cnt = {k:{} for k in groups.keys()}
@@ -198,7 +215,7 @@ all_avg_pks_amps = {k:{} for k in groups.keys()}
 all_avg_pks_fwhm = {k:{} for k in groups.keys()}
 for cpt,fname in enumerate(all_files):
     print("Processing[{}/{}]: {}".format(cpt + 1, len(all_files), fname))
-    ts = fname[:-len(".csv")].split("_")[3]
+    ts = fname[:-len(".csv")].split("_")[-3]
 
     if ts in excluded_ts:
         continue

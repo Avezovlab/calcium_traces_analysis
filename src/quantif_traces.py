@@ -6,25 +6,19 @@ Created on Thu Mar  4 16:46:04 2021
 @author: pierre
 """
 
-from os.path import join, isfile, isdir
+from os.path import join, isdir
 from os import listdir, makedirs
-import pickle
 
-from numpy import array, mean, max, std, histogram, correlate, argmax, arange, sqrt, cumsum, ones, argsort
-from numpy.polynomial.polynomial import polyfit
+from numpy import array, mean, max, std, arange, argsort
 from numpy.random import rand
 
 from matplotlib import pyplot as plt
 from scipy.signal import find_peaks
 from scipy.interpolate import interp1d
 
-import time
-
-import seaborn as sns
-
 from scipy.signal import savgol_filter
 
-plt.ioff()
+#plt.ioff()
 
 
 #base_dir = "/mnt/data2/incucyte_calcium_cold_shock/MA12(18.9.20)_Cold shock3_12.10.20/processed"
@@ -33,25 +27,44 @@ plt.ioff()
 #base_dir = "/mnt/data2/incucyte_calcium_cold_shock/MA9(24.8)_cold_shock2_19.9.20/processed"
 #out_dir = "/tmp/a/MA9(24.8)_cold_shock2_19.9.20"
 
-base_dir = "E:/cyrcadian_example/out"
-out_dir = "E:/cyrcadian_example/plots"
-
-if not isdir(out_dir):
-    makedirs(out_dir)
+import sys
+sys.path.append("/mnt/data2/calcium_incucyte/PP_VD_Prop_191021/data")
+from analysis_config import *
 
 DT = 0.33
 pxsize = 0.2646 #mm
 
+plot_indiv_traces = True
+
+base_dir = join(out_dir, "traces")
+out_dir = join(out_dir, "imgs")
+if not isdir(out_dir):
+    makedirs(out_dir)
+
+
 all_files =  [f for f in listdir(base_dir) if f.startswith("traces")]
-timestamps = []
-all_avg_pks = {}
+timestamps = set()
+pks_cnt = {}
 all_avg_pks_freqs = {}
 all_avg_pks_amps = {}
 all_avg_pks_fwhm = {}
 for cpt,fname in enumerate(all_files):
     print("Processing[{}/{}]: {}".format(cpt + 1, len(all_files), fname))
     ts = fname[:-len(".csv")].split("_")[3]
-    timestamps.append(ts)
+    timestamps.add(ts)
+
+    well = "_".join(fname.split("_")[1:3])
+    if well not in pks_cnt:
+        pks_cnt[well] = {}
+        all_avg_pks_freqs[well] = {}
+        all_avg_pks_amps[well] = {}
+        all_avg_pks_fwhm[well] = {}
+
+    if ts not in pks_cnt[well]:
+        pks_cnt[well][ts] = []
+        all_avg_pks_freqs[well][ts] = []
+        all_avg_pks_amps[well][ts] = []
+        all_avg_pks_fwhm[well][ts] = []
 
     traces = []
     with open(join(base_dir, fname), 'r') as f:
@@ -59,17 +72,17 @@ for cpt,fname in enumerate(all_files):
             line = line.rstrip("\n").split(" ")#?
             traces.append([float(e) for e in line[1].split(",")])
     avg_trace = [mean([e[i] for e in traces]) for i in range(len(traces[0]))]
-    print(len(avg_trace))
-    smoothed_trace = savgol_filter(avg_trace, 179, 3)
+    smoothed_trace = savgol_filter(avg_trace, 179, 3, mode='mirror')
 
     cur_pks = find_peaks(avg_trace)[0]
     Mtr = mean(avg_trace)
     SDtr = std(avg_trace)
 
     cur_pks = [pk for pk in cur_pks if avg_trace[pk] > 1.3*smoothed_trace[pk]]
-    all_avg_pks[ts] = cur_pks
-    all_avg_pks_freqs[ts] = [1 / ((cur_pks[i+1] - cur_pks[i]) * DT) for i in range(0, len(cur_pks) - 1) if (cur_pks[i+1] - cur_pks[i]) * DT < 50]
-    all_avg_pks_amps[ts] = [avg_trace[cur_pks[i]] for i in range(0, len(cur_pks))]
+    
+    pks_cnt[well][ts] = len(cur_pks)
+    all_avg_pks_freqs[well][ts] = [1 / ((cur_pks[i+1] - cur_pks[i]) * DT) for i in range(0, len(cur_pks) - 1) if (cur_pks[i+1] - cur_pks[i]) * DT < 50]
+    all_avg_pks_amps[well][ts] = [avg_trace[cur_pks[i]] for i in range(0, len(cur_pks))]
 
     I1s = []
     I2s = []
@@ -95,36 +108,53 @@ for cpt,fname in enumerate(all_files):
         I = argsort(abs(f(xs) - y_h))
         I1 = [xs[e] for e in I if xs[e] < pk and xs[e] > prev_min][0]
         I2 = [xs[e] for e in I if xs[e] > pk and xs[e] < next_min][0]
-        all_avg_pks_fwhm[ts].append((I2 - I1) * DT)
+        all_avg_pks_fwhm[well][ts].append((I2 - I1) * DT)
         I1s.append(I1)
         I2s.append(I2)
         yhs.append(y_h)
 
-    plt.figure(figsize=(6,6))
-    for trace in traces:
-        plt.plot(array(range(len(trace))) * DT, trace, linewidth=0.2)
-    plt.plot(array(range(len(avg_trace))) * DT, avg_trace, 'k', linewidth=2)
-    plt.plot([e * DT for e in cur_pks], [avg_trace[idx] for idx in cur_pks], '*r')
-    plt.plot(array(range(len(smoothed_trace))) * DT, smoothed_trace, 'b', linewidth=2)
-    for i in range(len(I1s)):
-        plt.plot([I1s[i] * DT, I2s[i] * DT], [yhs[i], yhs[i]], 'g')
-    plt.ylim([0, 175])
-    plt.ylabel("Intensity (AU)")
-    plt.xlabel("Time (s)")
-    plt.title("n = {} traces".format(len(traces)))
-    plt.savefig(join(out_dir, fname[:-len(".csv")] + ".png"), dpi=300)#, bbox_inches='tight',pad_inches=0)
-    plt.close()
-    #assert(False)
+    if plot_indiv_traces:
+        plt.figure(figsize=(6,2))
+        for trace in traces:
+            plt.plot(array(range(len(trace))) * DT, trace, linewidth=0.2)
+        plt.plot(array(range(len(avg_trace))) * DT, avg_trace, 'k', linewidth=2)
+        plt.plot([e * DT for e in cur_pks], [avg_trace[idx] for idx in cur_pks], '*r')
+        #plt.plot(array(range(len(smoothed_trace))) * DT, smoothed_trace, 'b', linewidth=2)
+        for i in range(len(I1s)):
+            plt.plot([I1s[i] * DT, I2s[i] * DT], [yhs[i], yhs[i]], 'g')
+        plt.ylim([0, 175])
+        plt.ylabel("Intensity (AU)")
+        plt.xlabel("Time (s)")
+        plt.title("n = {} traces".format(len(traces)))
+        #plt.savefig(join(out_dir, fname[:-len(".csv")] + ".png"), dpi=300)#, bbox_inches='tight',pad_inches=0)
+        plt.savefig(join(out_dir, fname[:-len(".csv")] + ".svg"))
+        plt.close()
+        #assert(False)
 
 
 timestamps = sorted(timestamps,
                     key=lambda e: int(e.split("d")[0]) * 1440 + int(e.split("d")[1].split("h")[0]) * 60 + int(e.split("h")[1].split("m")[0]))
 
+
+min_v = min([min(e.values()) for e in pks_cnt.values()])
+max_v = max([max(list(e.values())) for e in pks_cnt.values()])
+for exp in pks_cnt.keys():
+    plt.figure(figsize=(6,6))
+    plt.plot(range(1, len(timestamps) + 1), [pks_cnt[exp][ts] for ts in timestamps])
+    plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamps, rotation=45)
+    plt.ylim([min_v, max_v])
+    plt.ylabel('Number of peaks')
+    plt.savefig(join(out_dir, exp + "_peaks_count.png"), dpi=300)#, bbox_inches='tight',pad_inches=0)
+
+
 plt.figure(figsize=(6,6))
-p = plt.bar(range(1, len(timestamps) + 1), [len(all_avg_pks[ts]) for ts in timestamps])
+for exp in pks_cnt.keys():
+    plt.plot(range(1, len(timestamps) + 1), [pks_cnt[exp][ts] for ts in timestamps])
 plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamps, rotation=45)
 plt.ylabel('Number of peaks')
-plt.savefig(join(out_dir, "peaks_count.png"), dpi=300)#, bbox_inches='tight',pad_inches=0)
+plt.legend(pks_cnt.keys())
+#plt.savefig(join(out_dir, "peaks_count.png"), dpi=300)#, bbox_inches='tight',pad_inches=0)
+plt.savefig(join(out_dir, "peaks_count.pdf"))#, bbox_inches='tight',pad_inches=0)
 
 plt.figure(figsize=(6,6))
 p = plt.boxplot([all_avg_pks_freqs[ts] for ts in timestamps])
