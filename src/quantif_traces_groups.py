@@ -167,14 +167,16 @@ pk_smooth_factor = 1.3
 #these values must be present in the config file
 proc_dir = None
 pk_smooth_factor = None
+min_traces = None
 
-sys.path.append("/mnt/data2/calcium_incucyte/ML/241121")
+sys.path.append("E:/ML/151221")
 from analysis_config import *
 excluded_ts = []
-groups = {"chol" : ["C6", "C7", "C8"],
-          "asyn" : ["D3", "D4", "D5"], "chol + asyn" : ["D6", "D7", "D8"], 
-          "mbcd + asyn + chol" : ["E3", "E4", "E5"], "U188A + asyn + chol" : ["E6", "E7", "E8"],
-          "U188A" : ["F3", "F4", "F5"], "cntrl" : ["F6", "F7", "F8"]}
+groups = {"chol" : ["C3", "C4", "C5"],
+          "asyn" : ["F6", "F7", "E7"], "chol + asyn" : ["D3", "D4", "E3"], 
+          "mbcd + asyn + chol" : ["D6", "D7", "D8"], "U188A + asyn + chol" : ["C6", "C7", "C8"],
+          "U188A" : ["F3", "F4", "F5"], "cntrl" : ["E4", "E5", "E6"], "chol + mbcd" : ["G3", "G4", "G5"],
+          "mbcd" : ["G6", "G7", "G8"]}
 
 #set1 matplotlib qualitative colormap
 groups_col = {'chol': [228 / 255, 26 / 255, 28 / 255],
@@ -183,12 +185,14 @@ groups_col = {'chol': [228 / 255, 26 / 255, 28 / 255],
               'mbcd + asyn + chol': [152 / 255, 78 / 255, 183 / 255],
               'U188A + asyn + chol': [255 / 255, 127 / 255, 0 / 255],
               'U188A': [166 / 255, 86 / 255, 40 / 255],
-              'cntrl': [0, 0, 0]}
+              'cntrl': [0, 0, 0],
+              "chol + mbcd" : [247 / 255, 129 / 255, 191 / 255],
+              "mbcd" : [153 / 255, 153 / 255, 153 / 255]}
 time_groups = [1] * 6
 
 time_groups_names = {1: "aa"}
 fill_missing = False
-plot_indiv_traces = False
+plot_indiv_traces = True
 
 DT = 0.33
 pxsize = 0.2646 #mm
@@ -197,12 +201,12 @@ pxsize = 0.2646 #mm
 
 gkeys = list(groups.keys())
 pool_times = False
-min_traces = 550 #50
 
 timestamps = set()
 
-
+print(proc_dir)
 base_dir = join(proc_dir, "traces")
+
 out_dir = join(proc_dir, "res")
 
 if not isdir(out_dir):
@@ -211,7 +215,7 @@ if not isdir(out_dir):
 all_files =  [f for f in listdir(base_dir) if f.startswith("traces")]
 all_traces_cnt = {k:{} for k in groups.keys()}
 all_avg_pks_cnt = {k:{} for k in groups.keys()}
-all_max_ccor = {k:{} for k in groups.keys()}
+all_ccor = {k:{} for k in groups.keys()}
 all_avg_pks_freqs = {k:{} for k in groups.keys()}
 all_avg_pks_amps = {k:{} for k in groups.keys()}
 all_avg_pks_fwhm = {k:{} for k in groups.keys()}
@@ -234,7 +238,7 @@ for cpt,fname in enumerate(all_files):
 
     if well not in all_avg_pks_cnt[cat]:
         all_traces_cnt[cat][well] = {}
-        all_max_ccor[cat][well] = {}
+        all_ccor[cat][well] = {}
         all_avg_pks_cnt[cat][well] = {}
         all_avg_pks_freqs[cat][well] = {}
         all_avg_pks_amps[cat][well] = {}
@@ -249,7 +253,7 @@ for cpt,fname in enumerate(all_files):
     all_traces_cnt[cat][well][ts] = [len(traces)]
     if len(traces) < min_traces:
         all_avg_pks_cnt[cat][well][ts] = [0]
-        all_max_ccor[cat][well][ts] = []
+        all_ccor[cat][well][ts] = []
         all_avg_pks_freqs[cat][well][ts] = []
         all_avg_pks_amps[cat][well][ts] = []
         all_avg_pks_fwhm[cat][well][ts] = []
@@ -272,12 +276,13 @@ for cpt,fname in enumerate(all_files):
     all_avg_pks_freqs[cat][well][ts] = [1 / ((cur_pks[i+1] - cur_pks[i]) * DT) for i in range(0, len(cur_pks) - 1) if (cur_pks[i+1] - cur_pks[i]) * DT < 50]
     all_avg_pks_amps[cat][well][ts] = [avg_trace[cur_pks[i]] for i in range(0, len(cur_pks))]
 
-    all_max_ccor[cat][well][ts] = []
+    all_ccor[cat][well][ts] = []
     for i in range(len(traces)):
         ccov = correlate(traces[i] - mean(traces[i]), avg_trace - mean(avg_trace), mode='full')
         ccor = ccov / (len(traces[i]) * std(traces[i]) * std(avg_trace))
-        if not isnan(max(ccor)):
-            all_max_ccor[cat][well][ts].append(max(ccor))
+        all_ccor[cat][well][ts].append(ccor[len(traces[i]) - 1])
+        #if not isnan(max(ccor)):
+            #all_max_ccor[cat][well][ts].append(max(ccor))
 
     I1s = []
     I2s = []
@@ -327,6 +332,7 @@ for cpt,fname in enumerate(all_files):
 
 timestamps = sorted(timestamps,
                     key=lambda e: int(e.split("d")[0]) * 1440 + int(e.split("d")[1].split("h")[0]) * 60 + int(e.split("h")[1].split("m")[0]))
+N = len(timestamps)
 timestamp_disps = range(len(timestamps))
 groups_keys = list(groups.keys())
 
@@ -398,10 +404,10 @@ for i, k in enumerate(groups_keys):
     vs = []
     for w,v in all_avg_pks_fwhm[k].items():
         vs.append([mean(v[ts]) for ts in timestamps])
-    plt.plot(range(1, len(timestamps) + 1), [mean([e[i] for e in vs]) for i in range(6)], color=groups_col[groups_keys[i]])
+    plt.plot(range(1, len(timestamps) + 1), [mean([e[i] for e in vs]) for i in range(N)], color=groups_col[groups_keys[i]])
     plt.fill_between(range(1, len(timestamps) + 1),
-                     [mean([e[i] for e in vs]) - std([e[i] for e in vs]) for i in range(6)],
-                     [mean([e[i] for e in vs]) + std([e[i] for e in vs]) for i in range(6)], alpha=0.3, color=groups_col[groups_keys[i]])
+                     [mean([e[i] for e in vs]) - std([e[i] for e in vs]) for i in range(N)],
+                     [mean([e[i] for e in vs]) + std([e[i] for e in vs]) for i in range(N)], alpha=0.3, color=groups_col[groups_keys[i]])
 plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamp_disps, rotation=0)
 plt.xlabel('Days after treatment')
 plt.ylabel('Average peak width (s)')
@@ -409,7 +415,7 @@ plt.savefig(join(out_dir, "peaks_width_notpooled.png"), dpi=300, bbox_inches='ti
 
 
 
-xs, dat = pool_data(all_max_ccor, timestamps, groups, pool_times, fill_missing)
+xs, dat = pool_data(all_ccor, timestamps, groups, pool_times, fill_missing)
 plt.figure(figsize=(7,7))
 for k in range(len(groups.keys())):
     # plt.fill_between(range(1, len(timestamps)+1),
@@ -418,36 +424,36 @@ for k in range(len(groups.keys())):
     plt.plot(range(1, len(timestamps)+1), [mean(e) for e in dat[k]], color=groups_col[groups_keys[k]])
 plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamp_disps, rotation=0)
 plt.xlabel('Days after treatment')
-plt.ylabel('AVG max correlation')
+plt.ylabel('AVG correlation')
 plt.savefig(join(out_dir, "corr.png"), dpi=300, bbox_inches='tight',pad_inches=0)
 
 plt.figure(figsize=(7,7))
 for i, k in enumerate(groups_keys):
     vs = []
-    for w,v in all_max_ccor[k].items():
+    for w,v in all_ccor[k].items():
         vs.append([mean(v[ts]) for ts in timestamps])
-    plt.plot(range(1, len(timestamps)+1), [mean([e[i] for e in vs]) for i in range(6)], color=groups_col[groups_keys[i]])
+    plt.plot(range(1, len(timestamps)+1), [mean([e[i] for e in vs]) for i in range(N)], color=groups_col[groups_keys[i]])
     plt.fill_between(range(1, len(timestamps)+1),
-                     [mean([e[i] for e in vs]) - std([e[i] for e in vs]) for i in range(6)],
-                     [mean([e[i] for e in vs]) + std([e[i] for e in vs]) for i in range(6)], alpha=0.3, color=groups_col[groups_keys[i]])
+                     [mean([e[i] for e in vs]) - std([e[i] for e in vs]) for i in range(N)],
+                     [mean([e[i] for e in vs]) + std([e[i] for e in vs]) for i in range(N)], alpha=0.3, color=groups_col[groups_keys[i]])
 plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamp_disps, rotation=0)
 plt.xlabel('Days after treatment')
-plt.ylabel('AVG delta max correlation')
+plt.ylabel('AVG correlation')
 plt.savefig(join(out_dir, "corr_notpooled.png"), dpi=300, bbox_inches='tight',pad_inches=0)
 
 plt.figure(figsize=(7,7))
 for i, k in enumerate(groups_keys):
     vs = []
-    for w,v in all_max_ccor[k].items():
+    for w,v in all_ccor[k].items():
         n = mean(v[timestamps[0]])
         vs.append([mean(v[ts] - n) for ts in timestamps])
-    plt.plot(range(1, len(timestamps)+1), [mean([e[i] for e in vs]) for i in range(6)], color=groups_col[groups_keys[i]])
+    plt.plot(range(1, len(timestamps)+1), [mean([e[i] for e in vs]) for i in range(N)], color=groups_col[groups_keys[i]])
     plt.fill_between(range(1, len(timestamps)+1),
-                     [mean([e[i] for e in vs]) - std([e[i] for e in vs]) for i in range(6)],
-                     [mean([e[i] for e in vs]) + std([e[i] for e in vs]) for i in range(6)], alpha=0.3, color=groups_col[groups_keys[i]])
+                     [mean([e[i] for e in vs]) - std([e[i] for e in vs]) for i in range(N)],
+                     [mean([e[i] for e in vs]) + std([e[i] for e in vs]) for i in range(N)], alpha=0.3, color=groups_col[groups_keys[i]])
 plt.xticks(ticks=range(1, len(timestamps) + 1), labels=timestamp_disps, rotation=0)
 plt.xlabel('Days after treatment')
-plt.ylabel('AVG delta max correlation')
+plt.ylabel('AVG delta correlation')
 plt.savefig(join(out_dir, "corr_delta_notpooled.png"), dpi=300, bbox_inches='tight',pad_inches=0)
 
 
